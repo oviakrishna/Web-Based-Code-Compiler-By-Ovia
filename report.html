@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Code-Compiler (Usage Report)</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0a0a0f; --panel: #111118; --border: #1e1e2e;
+      --accent: #e8ff47; --text: #e8e8f0; --muted: #555566; --danger: #ff4747;
+    }
+    body { background: var(--bg); color: var(--text); font-family: 'Syne', sans-serif; min-height: 100vh; }
+    body::before {
+      content: ''; position: fixed; inset: 0;
+      background-image: linear-gradient(rgba(232,255,71,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(232,255,71,0.025) 1px, transparent 1px);
+      background-size: 40px 40px; pointer-events: none; z-index: 0;
+    }
+    .page { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; padding: 32px 24px 60px; }
+
+    .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 36px; flex-wrap: wrap; gap: 16px; }
+    .logo-mark { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .logo-icon { width: 34px; height: 34px; background: var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 14px; color: #0a0a0f; }
+    .logo-text { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; color: var(--text); }
+    .logo-text span { color: var(--accent); }
+    .header-right { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--muted); }
+    .page-title { font-size: 28px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 4px; }
+    .page-subtitle { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--muted); margin-bottom: 28px; }
+
+    .section-head { display: flex; align-items: center; gap: 14px; margin: 36px 0 20px; }
+    .section-head h2 { font-size: 18px; font-weight: 800; letter-spacing: -.3px; white-space: nowrap; }
+    .section-line { flex: 1; height: 1px; background: var(--border); }
+    .section-tag { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); background: var(--panel); border: 1px solid var(--border); border-radius: 5px; padding: 3px 9px; white-space: nowrap; }
+
+    /* ── CONTROLS ── */
+    .controls-bar { display: flex; align-items: center; gap: 16px; margin-bottom: 28px; flex-wrap: wrap; background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; }
+    .ctrl-group { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .ctrl-label { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); white-space: nowrap; }
+    .ctrl-sep { width: 1px; height: 28px; background: var(--border); flex-shrink: 0; }
+    .btn-group { display: flex; gap: 4px; }
+    .btn-group button { font-family: 'JetBrains Mono', monospace; font-size: 11px; padding: 6px 14px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--muted); cursor: pointer; transition: all .15s; }
+    .btn-group button:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-group button.active { background: var(--accent); border-color: var(--accent); color: #0a0a0f; font-weight: 700; }
+
+    /* Date picker inputs */
+    .date-range-wrap { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .date-input-group { display: flex; flex-direction: column; gap: 3px; }
+    .date-input-label { font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); }
+    .date-input { font-family: 'JetBrains Mono', monospace; font-size: 12px; padding: 7px 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); outline: none; transition: border-color .2s; cursor: pointer; }
+    .date-input:focus { border-color: var(--accent); }
+    .date-input::-webkit-calendar-picker-indicator { filter: invert(0.5); cursor: pointer; }
+    .date-arrow { color: var(--muted); font-family: 'JetBrains Mono', monospace; font-size: 12px; padding: 0 2px; }
+    .apply-btn { font-family: 'JetBrains Mono', monospace; font-size: 11px; padding: 8px 16px; background: var(--accent); border: 1px solid var(--accent); border-radius: 6px; color: #0a0a0f; cursor: pointer; font-weight: 700; transition: opacity .15s; white-space: nowrap; }
+    .apply-btn:hover { opacity: 0.85; }
+    .clear-btn { font-family: 'JetBrains Mono', monospace; font-size: 11px; padding: 8px 12px; background: transparent; border: 1px solid var(--border); border-radius: 6px; color: var(--muted); cursor: pointer; transition: all .15s; }
+    .clear-btn:hover { border-color: var(--danger); color: var(--danger); }
+
+    /* Download bar */
+    .download-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 28px; flex-wrap: wrap; }
+    .dl-label { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); margin-right: 4px; }
+    .dl-btn { display: flex; align-items: center; gap: 7px; font-family: 'JetBrains Mono', monospace; font-size: 11px; padding: 7px 14px; background: var(--panel); border: 1px solid var(--border); border-radius: 7px; color: var(--text); cursor: pointer; transition: all .15s; }
+    .dl-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .dl-btn svg { flex-shrink: 0; }
+    .dl-btn.print-btn:hover { border-color: #63C963; color: #63C963; }
+    .dl-btn.pdf-btn:hover { border-color: #E24B4A; color: #E24B4A; }
+
+    .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 28px; }
+    .stat-card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; }
+    .stat-label { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+    .stat-value { font-size: 28px; font-weight: 800; letter-spacing: -1px; color: var(--accent); }
+    .stat-sub { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+    .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+    @media (max-width: 768px) { .charts-grid { grid-template-columns: 1fr; } }
+    .chart-card { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 24px; }
+    .chart-card.full { grid-column: 1 / -1; }
+    .chart-title { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+    .chart-desc { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); margin-bottom: 20px; }
+    .chart-wrap { position: relative; }
+
+    .legend { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; }
+    .legend-item { display: flex; align-items: center; gap: 6px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); }
+    .legend-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+
+    .table-card { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 24px; margin-bottom: 20px; overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); text-align: left; padding: 0 12px 12px 0; border-bottom: 1px solid var(--border); }
+    td { padding: 11px 12px 11px 0; border-bottom: 1px solid rgba(30,30,46,0.6); color: var(--text); font-family: 'JetBrains Mono', monospace; }
+    tr:last-child td { border-bottom: none; }
+    .lang-badge { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px 3px 6px; border-radius: 5px; background: rgba(255,255,255,0.05); font-size: 11px; font-weight: 700; }
+    .lang-dot { width: 7px; height: 7px; border-radius: 50%; }
+    .bar-cell { display: flex; align-items: center; gap: 10px; }
+    .mini-bar-bg { flex: 1; height: 4px; background: rgba(255,255,255,0.06); border-radius: 2px; max-width: 140px; }
+    .mini-bar { height: 4px; border-radius: 2px; }
+
+    .users-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 16px; margin-bottom: 20px; }
+    .user-card { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 20px 22px; }
+    .user-card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+    .user-avatar { width: 40px; height: 40px; border-radius: 10px; background: rgba(232,255,71,0.1); border: 1px solid rgba(232,255,71,0.2); display: flex; align-items: center; justify-content: center; font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 15px; color: var(--accent); flex-shrink: 0; }
+    .user-name { font-size: 15px; font-weight: 700; }
+    .user-total { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .user-langs { display: flex; flex-direction: column; gap: 9px; }
+    .user-lang-row { display: flex; align-items: center; gap: 8px; }
+    .user-lang-name { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); width: 72px; flex-shrink: 0; }
+    .user-lang-bar-bg { flex: 1; height: 6px; background: rgba(255,255,255,0.06); border-radius: 3px; }
+    .user-lang-bar { height: 6px; border-radius: 3px; }
+    .user-lang-count { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); min-width: 28px; text-align: right; }
+
+    .user-row-header { cursor: pointer; }
+    .user-row-header td { background: rgba(232,255,71,0.03); padding-top: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+    .user-row-header:hover td { background: rgba(232,255,71,0.06); }
+    .expand-icon { font-size: 10px; color: var(--muted); margin-right: 6px; transition: transform .2s; display: inline-block; }
+    .expand-icon.open { transform: rotate(90deg); }
+    .sub-row td { padding-left: 24px; background: rgba(255,255,255,0.015); }
+    .sub-row:last-of-type td { border-bottom: 1px solid var(--border); }
+
+    .user-search-wrap { margin-bottom: 20px; }
+    .user-search-wrap input { width: 100%; max-width: 320px; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 13px; outline: none; transition: border-color .2s; }
+    .user-search-wrap input:focus { border-color: var(--accent); }
+    .user-search-wrap input::placeholder { color: var(--muted); }
+
+    .top-badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(232,255,71,0.08); border: 1px solid rgba(232,255,71,0.18); border-radius: 6px; padding: 3px 10px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--accent); }
+    .error-box { background: rgba(255,71,71,0.08); border: 1px solid rgba(255,71,71,0.25); border-radius: 10px; padding: 16px 20px; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--danger); margin-bottom: 24px; display: none; white-space: pre-wrap; }
+    .error-box.show { display: block; }
+    .empty-msg { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--muted); text-align: center; padding: 40px 0; }
+
+    /* Active range badge */
+    .active-range-badge { display: inline-flex; align-items: center; gap: 8px; background: rgba(232,255,71,0.06); border: 1px solid rgba(232,255,71,0.15); border-radius: 8px; padding: 5px 12px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--accent); }
+    .active-range-badge .badge-x { cursor: pointer; color: var(--muted); margin-left: 4px; font-size: 13px; line-height: 1; }
+    .active-range-badge .badge-x:hover { color: var(--danger); }
+
+    /* Toast */
+    .toast { position: fixed; bottom: 24px; right: 24px; background: var(--panel); border: 1px solid var(--accent); border-radius: 10px; padding: 12px 18px; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--accent); z-index: 999; opacity: 0; transform: translateY(8px); transition: all .25s; pointer-events: none; }
+    .toast.show { opacity: 1; transform: translateY(0); }
+
+    @media print {
+      body::before { display: none; }
+      .controls-bar, .download-bar, .user-search-wrap { display: none !important; }
+      .page { padding: 16px; }
+      .chart-card, .table-card, .stat-card, .user-card { break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+<div class="page" id="main-page">
+
+  <div class="header">
+    <a class="logo-mark" href="/compiler">
+      <div class="logo-icon">&lt;/&gt;</div>
+      <div class="logo-text">Code<span>Compiler</span></div>
+    </a>
+    <div class="header-right">// usage analytics dashboard</div>
+  </div>
+
+  <div class="page-title">Language Usage Report</div>
+  <div class="page-subtitle" id="report-range">// loading data…</div>
+  <div class="error-box" id="error-box"></div>
+
+  <!-- ── CONTROLS ── -->
+  <div class="controls-bar">
+    <!-- Quick range buttons -->
+    <div class="ctrl-group">
+      <span class="ctrl-label">Quick</span>
+      <div class="btn-group" id="range-btns">
+        <button data-days="7">7d</button>
+        <button data-days="30" class="active">30d</button>
+        <button data-days="90">90d</button>
+        <button data-days="0">All</button>
+      </div>
+    </div>
+
+    <div class="ctrl-sep"></div>
+
+    <!-- Custom date range -->
+    <div class="ctrl-group">
+      <span class="ctrl-label">Custom</span>
+      <div class="date-range-wrap">
+        <div class="date-input-group">
+          <span class="date-input-label">From</span>
+          <input type="date" class="date-input" id="date-from" />
+        </div>
+        <span class="date-arrow">→</span>
+        <div class="date-input-group">
+          <span class="date-input-label">To</span>
+          <input type="date" class="date-input" id="date-to" />
+        </div>
+        <button class="apply-btn" onclick="applyCustomRange()">Apply</button>
+        <button class="clear-btn" onclick="clearCustomRange()">Clear</button>
+      </div>
+    </div>
+
+    <!-- Active custom range badge (shown when custom range is active) -->
+    <div id="active-range-badge" style="display:none">
+      <div class="active-range-badge">
+        <span id="active-range-text"></span>
+        <span class="badge-x" onclick="clearCustomRange()">✕</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── DOWNLOAD BAR ── -->
+  <div class="download-bar">
+    <span class="dl-label">Export</span>
+    <button class="dl-btn" onclick="downloadCSV('lang')">
+      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      CSV — Languages
+    </button>
+    <button class="dl-btn" onclick="downloadCSV('user')">
+      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      CSV — Users
+    </button>
+    <button class="dl-btn" onclick="downloadJSON()">
+      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      JSON — Full
+    </button>
+    <button class="dl-btn print-btn" onclick="window.print()">
+      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+      Print / PDF
+    </button>
+  </div>
+
+  <!-- ── SECTION 1: Overall Stats ── -->
+  <div class="section-head">
+    <h2>Overall Stats</h2><div class="section-line"></div><div class="section-tag">global</div>
+  </div>
+  <div class="stats-row">
+    <div class="stat-card"><div class="stat-label">Total Runs</div><div class="stat-value" id="s-total">—</div><div class="stat-sub">code executions</div></div>
+    <div class="stat-card"><div class="stat-label">Active Days</div><div class="stat-value" id="s-days">—</div><div class="stat-sub">days with activity</div></div>
+    <div class="stat-card"><div class="stat-label">Total Users</div><div class="stat-value" id="s-users">—</div><div class="stat-sub">ran code</div></div>
+    <div class="stat-card"><div class="stat-label">Languages Used</div><div class="stat-value" id="s-langs">—</div><div class="stat-sub">distinct</div></div>
+    <div class="stat-card"><div class="stat-label">Top Language</div><div class="stat-value" id="s-top" style="font-size:18px;margin-top:4px">—</div><div class="stat-sub" id="s-top-pct"></div></div>
+  </div>
+
+  <!-- ── SECTION 2: Language Charts ── -->
+  <div class="section-head">
+    <h2>Language Activity</h2><div class="section-line"></div><div class="section-tag">by date</div>
+  </div>
+  <div class="charts-grid">
+    <div class="chart-card full">
+      <div class="chart-title">Daily Runs by Language</div>
+      <div class="chart-desc">// stacked executions per day</div>
+      <div class="legend" id="legend-daily"></div>
+      <div class="chart-wrap" style="height:260px"><canvas id="chart-daily"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Language Share</div>
+      <div class="chart-desc">// total runs breakdown</div>
+      <div class="chart-wrap" style="height:240px"><canvas id="chart-pie"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Usage Trend</div>
+      <div class="chart-desc">// 7-day rolling average</div>
+      <div class="legend" id="legend-trend"></div>
+      <div class="chart-wrap" style="height:200px"><canvas id="chart-trend"></canvas></div>
+    </div>
+  </div>
+  <div class="table-card">
+    <div class="chart-title" style="margin-bottom:4px">Language Breakdown</div>
+    <div class="chart-desc">// totals for selected period</div>
+    <table>
+      <thead><tr><th>Language</th><th>Runs</th><th>Share</th><th>Distribution</th></tr></thead>
+      <tbody id="lang-table-body"></tbody>
+    </table>
+  </div>
+
+  <!-- ── SECTION 3: User Breakdown ── -->
+  <div class="section-head">
+    <h2>User Breakdown</h2><div class="section-line"></div><div class="section-tag">who uses what</div>
+  </div>
+  <div class="user-search-wrap">
+    <input type="text" id="user-search" placeholder="Search username…" oninput="filterUsers(this.value)"/>
+  </div>
+  <div class="users-grid" id="users-grid"></div>
+  <div class="table-card">
+    <div class="chart-title" style="margin-bottom:4px">User × Language Detail</div>
+    <div class="chart-desc">// click a user row to expand per-language breakdown</div>
+    <table>
+      <thead><tr><th>User</th><th>Language</th><th>Runs</th><th>Distribution</th></tr></thead>
+      <tbody id="user-detail-body"></tbody>
+    </table>
+  </div>
+  <div class="chart-card full" style="margin-bottom:20px">
+    <div class="chart-title">Runs per User per Language</div>
+    <div class="chart-desc">// horizontal stacked — all users at a glance</div>
+    <div class="legend" id="legend-user"></div>
+    <div class="chart-wrap" id="user-chart-wrap" style="height:300px"><canvas id="chart-user"></canvas></div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const LANG_COLORS = {
+  python:'#3B8BD4', javascript:'#EF9F27', java:'#E24B4A',
+  c:'#9FE1CB', cpp:'#D4537E', csharp:'#7F77DD', php:'#63C963', html:'#F0997B',
+};
+function langColor(l){ return LANG_COLORS[l.toLowerCase()]||'#888899'; }
+function langLabel(l){
+  return {javascript:'JS',csharp:'C#',cpp:'C++',python:'Python',java:'Java',c:'C',php:'PHP',html:'HTML'}[l.toLowerCase()]||l;
+}
+function initials(n){ return n.slice(0,2).toUpperCase(); }
+
+let allData=[], allUserData=[], activeDays=30;
+let customFrom=null, customTo=null;
+let chartDaily, chartPie, chartTrend, chartUser;
+const expandedUsers = new Set();
+
+// ── Toast ──────────────────────────────────────────────────
+function showToast(msg, duration=2400){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), duration);
+}
+
+// ── Date range helpers ────────────────────────────────────
+function applyCustomRange(){
+  const fromEl=document.getElementById('date-from');
+  const toEl=document.getElementById('date-to');
+  const f=fromEl.value, t2=toEl.value;
+  if(!f || !t2){ showToast('⚠ Set both From and To dates'); return; }
+  if(f>t2){ showToast('⚠ From must be before To'); return; }
+  customFrom=f; customTo=t2;
+  // Deactivate quick buttons
+  document.querySelectorAll('#range-btns button').forEach(b=>b.classList.remove('active'));
+  document.getElementById('active-range-badge').style.display='';
+  document.getElementById('active-range-text').textContent=`${f}  →  ${t2}`;
+  expandedUsers.clear(); render();
+  showToast('✓ Custom range applied');
+}
+
+function clearCustomRange(){
+  customFrom=null; customTo=null;
+  document.getElementById('date-from').value='';
+  document.getElementById('date-to').value='';
+  document.getElementById('active-range-badge').style.display='none';
+  // Restore 30d active
+  document.querySelectorAll('#range-btns button').forEach(b=>b.classList.toggle('active',b.dataset.days==='30'));
+  activeDays=30;
+  expandedUsers.clear(); render();
+}
+
+// ── Filter logic ──────────────────────────────────────────
+function filterData(data){
+  if(customFrom && customTo){
+    return data.filter(r=>r.date>=customFrom && r.date<=customTo);
+  }
+  if(!activeDays) return data;
+  const cut=new Date(); cut.setDate(cut.getDate()-activeDays);
+  const cutStr=cut.toISOString().slice(0,10);
+  return data.filter(r=>r.date>=cutStr);
+}
+
+function byLang(data){ const m={}; data.forEach(r=>{m[r.language]=(m[r.language]||0)+r.count;}); return m; }
+function allDates(data){ return [...new Set(data.map(r=>r.date))].sort(); }
+function allLangs(data){ return [...new Set(data.map(r=>r.language))].sort(); }
+function rollingAvg(arr,w){ return arr.map((_,i)=>{ const s=arr.slice(Math.max(0,i-w+1),i+1); return s.reduce((a,b)=>a+b,0)/s.length; }); }
+
+// ── Fetch ─────────────────────────────────────────────────
+async function fetchData(){
+  try {
+    const [r1,r2]=await Promise.all([fetch('/api/report'),fetch('/api/user-report')]);
+    const ct1=r1.headers.get('content-type')||'';
+    const ct2=r2.headers.get('content-type')||'';
+    if(!ct1.includes('application/json')) throw new Error('The /api/report endpoint returned HTML instead of JSON.\n\nThis usually means Flask redirected to the login page.\nMake sure you are logged in, or open the report from the compiler page.');
+    if(!ct2.includes('application/json')) throw new Error('The /api/user-report endpoint returned HTML instead of JSON.\n\nMake sure you are logged in before opening this report.');
+    allData=await r1.json(); allUserData=await r2.json();
+    if(allData.error) throw new Error('API error: '+allData.error);
+    if(allUserData.error) throw new Error('API error: '+allUserData.error);
+
+    // Pre-fill date inputs with data range
+    const allDts=[...allData.map(r=>r.date),...allUserData.map(r=>r.date)].sort();
+    if(allDts.length){
+      document.getElementById('date-from').min=allDts[0];
+      document.getElementById('date-from').max=allDts[allDts.length-1];
+      document.getElementById('date-to').min=allDts[0];
+      document.getElementById('date-to').max=allDts[allDts.length-1];
+    }
+
+    if(!allData.length && !allUserData.length) showEmpty();
+    else render();
+  } catch(e){ showError('Could not load report data.\n\n'+e.message); }
+}
+
+// ── Render ────────────────────────────────────────────────
+function render(){
+  const data=filterData(allData);
+  const userData=filterData(allUserData);
+  const dates=allDates(data);
+  const langs=allLangs(data);
+  const totals=byLang(data);
+  const grand=Object.values(totals).reduce((a,b)=>a+b,0);
+  const topLang=Object.entries(totals).sort((a,b)=>b[1]-a[1])[0]||['—',0];
+  const uUsers=[...new Set(userData.map(r=>r.username))];
+
+  document.getElementById('s-total').textContent=grand.toLocaleString();
+  document.getElementById('s-days').textContent=dates.length;
+  document.getElementById('s-users').textContent=uUsers.length;
+  document.getElementById('s-langs').textContent=langs.length;
+  document.getElementById('s-top').innerHTML=`<span class="top-badge"><span class="lang-dot" style="background:${langColor(topLang[0])}"></span>${langLabel(topLang[0])}</span>`;
+  document.getElementById('s-top-pct').textContent=grand?Math.round(topLang[1]/grand*100)+'% of runs':'';
+
+  const from=dates[0]||'—', to=dates[dates.length-1]||'—';
+  let rangeLabel;
+  if(customFrom && customTo) rangeLabel=`custom range: ${customFrom} → ${customTo}`;
+  else if(activeDays) rangeLabel=`last ${activeDays}d`;
+  else rangeLabel='all time';
+  document.getElementById('report-range').textContent=`// ${from} → ${to}  ·  ${rangeLabel}`;
+
+  const dm={};
+  data.forEach(r=>{if(!dm[r.date])dm[r.date]={};dm[r.date][r.language]=(dm[r.date][r.language]||0)+r.count;});
+
+  buildLegend('legend-daily',langs);
+  if(chartDaily) chartDaily.destroy();
+  chartDaily=new Chart(document.getElementById('chart-daily'),{type:'bar',data:{labels:dates,datasets:langs.map(l=>({label:langLabel(l),data:dates.map(d=>(dm[d]&&dm[d][l])||0),backgroundColor:langColor(l),borderRadius:2,borderSkipped:false}))},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false}},scales:{x:{stacked:true,ticks:{color:'#555566',font:{family:"'JetBrains Mono'",size:10},maxTicksLimit:12,autoSkip:true,maxRotation:45},grid:{color:'rgba(30,30,46,0.5)'}},y:{stacked:true,ticks:{color:'#555566',font:{family:"'JetBrains Mono'",size:10}},grid:{color:'rgba(30,30,46,0.5)'}}}}});
+
+  if(chartPie) chartPie.destroy();
+  const pl=Object.keys(totals).sort((a,b)=>totals[b]-totals[a]);
+  chartPie=new Chart(document.getElementById('chart-pie'),{type:'doughnut',data:{labels:pl.map(langLabel),datasets:[{data:pl.map(l=>totals[l]),backgroundColor:pl.map(langColor),borderWidth:2,borderColor:'#111118',hoverOffset:6}]},options:{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{display:true,position:'right',labels:{color:'#888899',font:{family:"'JetBrains Mono'",size:11},boxWidth:10,padding:10}},tooltip:{callbacks:{label:ctx=>` ${ctx.label}: ${ctx.raw} (${Math.round(ctx.raw/grand*100)}%)`}}}}});
+
+  buildLegend('legend-trend',langs);
+  if(chartTrend) chartTrend.destroy();
+  chartTrend=new Chart(document.getElementById('chart-trend'),{type:'line',data:{labels:dates,datasets:langs.map(l=>{const raw=dates.map(d=>(dm[d]&&dm[d][l])||0);return{label:langLabel(l),data:rollingAvg(raw,7).map(v=>Math.round(v*10)/10),borderColor:langColor(l),backgroundColor:'transparent',borderWidth:2,pointRadius:0,tension:0.4};})},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#555566',font:{family:"'JetBrains Mono'",size:10},maxTicksLimit:10,autoSkip:true,maxRotation:45},grid:{color:'rgba(30,30,46,0.5)'}},y:{ticks:{color:'#555566',font:{family:"'JetBrains Mono'",size:10}},grid:{color:'rgba(30,30,46,0.5)'}}}}}); 
+
+  const sorted=Object.entries(totals).sort((a,b)=>b[1]-a[1]);
+  const maxV=sorted[0]?.[1]||1;
+  document.getElementById('lang-table-body').innerHTML=sorted.map(([lang,count])=>{
+    const pct=Math.round(count/grand*100),bw=Math.round(count/maxV*100),col=langColor(lang);
+    return `<tr><td><span class="lang-badge"><span class="lang-dot" style="background:${col}"></span>${langLabel(lang)}</span></td><td>${count.toLocaleString()}</td><td>${pct}%</td><td><div class="bar-cell"><div class="mini-bar-bg"><div class="mini-bar" style="width:${bw}%;background:${col}"></div></div></div></td></tr>`;
+  }).join('');
+
+  const userMap={};
+  userData.forEach(r=>{if(!userMap[r.username])userMap[r.username]={};userMap[r.username][r.language]=(userMap[r.username][r.language]||0)+r.count;});
+  const sortedUsers=Object.entries(userMap).map(([name,langs])=>({name,langs,total:Object.values(langs).reduce((a,b)=>a+b,0)})).sort((a,b)=>b.total-a.total);
+
+  renderUserCards(sortedUsers);
+  renderUserDetailTable(sortedUsers);
+  renderUserChart(sortedUsers);
+}
+
+function renderUserCards(sortedUsers){
+  const grid=document.getElementById('users-grid');
+  if(!sortedUsers.length){grid.innerHTML='<p class="empty-msg">No user data yet.</p>';return;}
+  grid.innerHTML=sortedUsers.map(({name,langs,total})=>{
+    const sl=Object.entries(langs).sort((a,b)=>b[1]-a[1]);
+    const mx=sl[0]?.[1]||1;
+    const bars=sl.map(([lang,count])=>{
+      const w=Math.round(count/mx*100);
+      return `<div class="user-lang-row"><span class="user-lang-name">${langLabel(lang)}</span><div class="user-lang-bar-bg"><div class="user-lang-bar" style="width:${w}%;background:${langColor(lang)}"></div></div><span class="user-lang-count">${count}</span></div>`;
+    }).join('');
+    return `<div class="user-card" data-username="${name}"><div class="user-card-header"><div class="user-avatar">${initials(name)}</div><div><div class="user-name">${name}</div><div class="user-total">${total} run${total===1?'':'s'}</div></div></div><div class="user-langs">${bars}</div></div>`;
+  }).join('');
+}
+
+function renderUserDetailTable(sortedUsers){
+  const maxT=Math.max(...sortedUsers.map(u=>u.total),1);
+  const tbody=document.getElementById('user-detail-body');
+  tbody.innerHTML=sortedUsers.map(({name,langs,total})=>{
+    const sl=Object.entries(langs).sort((a,b)=>b[1]-a[1]);
+    const topL=sl[0]?.[0]||'';
+    const bw=Math.round(total/maxT*100);
+    const header=`<tr class="user-row-header" onclick="toggleExpand('${name}')"><td><span class="expand-icon" id="exp-${name}">▶</span><b>${name}</b></td><td><span class="lang-badge"><span class="lang-dot" style="background:${langColor(topL)}"></span>${langLabel(topL)}</span></td><td>${total.toLocaleString()}</td><td><div class="bar-cell"><div class="mini-bar-bg"><div class="mini-bar" style="width:${bw}%;background:var(--accent)"></div></div></div></td></tr>`;
+    const mx=sl[0]?.[1]||1;
+    const subrows=sl.map(([lang,count])=>{
+      const pct=Math.round(count/total*100),lbw=Math.round(count/mx*100),col=langColor(lang);
+      return `<tr class="sub-row" data-parent="${name}" style="display:none"><td style="color:var(--muted);font-size:11px">↳</td><td><span class="lang-badge"><span class="lang-dot" style="background:${col}"></span>${langLabel(lang)}</span></td><td>${count} <span style="color:var(--muted)">(${pct}%)</span></td><td><div class="bar-cell"><div class="mini-bar-bg"><div class="mini-bar" style="width:${lbw}%;background:${col}"></div></div></div></td></tr>`;
+    }).join('');
+    return header+subrows;
+  }).join('');
+}
+
+function toggleExpand(name){
+  const open=expandedUsers.has(name);
+  document.querySelectorAll(`tr[data-parent="${name}"]`).forEach(r=>r.style.display=open?'none':'');
+  const icon=document.getElementById('exp-'+name);
+  if(icon){icon.textContent=open?'▶':'▼';icon.classList.toggle('open',!open);}
+  if(open) expandedUsers.delete(name); else expandedUsers.add(name);
+}
+
+function renderUserChart(sortedUsers){
+  const langs=[...new Set(sortedUsers.flatMap(u=>Object.keys(u.langs)))].sort();
+  buildLegend('legend-user',langs);
+  const wrap=document.getElementById('user-chart-wrap');
+  wrap.style.height=Math.max(200,sortedUsers.length*44+80)+'px';
+  if(chartUser) chartUser.destroy();
+  chartUser=new Chart(document.getElementById('chart-user'),{type:'bar',data:{labels:sortedUsers.map(u=>u.name),datasets:langs.map(l=>({label:langLabel(l),data:sortedUsers.map(u=>u.langs[l]||0),backgroundColor:langColor(l),borderRadius:3,borderSkipped:false}))},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false}},scales:{x:{stacked:true,ticks:{color:'#555566',font:{family:"'JetBrains Mono'",size:10}},grid:{color:'rgba(30,30,46,0.5)'}},y:{stacked:true,ticks:{color:'#888899',font:{family:"'JetBrains Mono'",size:11}},grid:{color:'rgba(30,30,46,0.5)'}}}}});
+}
+
+function filterUsers(q){
+  q=q.toLowerCase();
+  document.querySelectorAll('#users-grid .user-card').forEach(c=>{c.style.display=c.dataset.username.toLowerCase().includes(q)?'':'none';});
+  document.querySelectorAll('#user-detail-body .user-row-header').forEach(row=>{
+    const n=row.querySelector('b').textContent.toLowerCase();
+    const show=n.includes(q);
+    row.style.display=show?'':'none';
+    document.querySelectorAll(`tr[data-parent="${n}"]`).forEach(r=>{if(!show)r.style.display='none';});
+  });
+}
+
+function buildLegend(id,langs){
+  document.getElementById(id).innerHTML=langs.map(l=>`<span class="legend-item"><span class="legend-dot" style="background:${langColor(l)}"></span>${langLabel(l)}</span>`).join('');
+}
+
+// ── DOWNLOAD FUNCTIONS ────────────────────────────────────
+function getFilenamePrefix(){
+  if(customFrom && customTo) return `codecompiler_${customFrom}_to_${customTo}`;
+  if(activeDays) return `codecompiler_last${activeDays}d_${new Date().toISOString().slice(0,10)}`;
+  return `codecompiler_alltime_${new Date().toISOString().slice(0,10)}`;
+}
+
+function triggerDownload(content, filename, mime){
+  const blob=new Blob([content],{type:mime});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download=filename; a.click();
+  URL.revokeObjectURL(url);
+}
+
+function downloadCSV(type){
+  const data=filterData(type==='lang'?allData:allUserData);
+  let csv, filename;
+
+  if(type==='lang'){
+    // Aggregate by language
+    const totals=byLang(data);
+    const grand=Object.values(totals).reduce((a,b)=>a+b,0);
+    const rows=[['language','runs','share_pct']];
+    Object.entries(totals).sort((a,b)=>b[1]-a[1]).forEach(([lang,count])=>{
+      rows.push([lang, count, (grand?Math.round(count/grand*100):0)+'%']);
+    });
+    // Also include daily breakdown
+    rows.push([]);
+    rows.push(['--- daily breakdown ---']);
+    rows.push(['date','language','runs']);
+    data.forEach(r=>rows.push([r.date,r.language,r.count]));
+    csv=rows.map(r=>r.join(',')).join('\n');
+    filename=getFilenamePrefix()+'_languages.csv';
+  } else {
+    const rows=[['username','language','runs']];
+    data.forEach(r=>rows.push([r.username,r.language,r.count]));
+    csv=rows.map(r=>r.join(',')).join('\n');
+    filename=getFilenamePrefix()+'_users.csv';
+  }
+
+  triggerDownload(csv, filename, 'text/csv');
+  showToast('✓ CSV downloaded');
+}
+
+function downloadJSON(){
+  const prefix=getFilenamePrefix();
+  let rangeLabel;
+  if(customFrom && customTo) rangeLabel=`${customFrom} to ${customTo}`;
+  else if(activeDays) rangeLabel=`last ${activeDays} days`;
+  else rangeLabel='all time';
+
+  const payload={
+    exported_at: new Date().toISOString(),
+    range: rangeLabel,
+    language_data: filterData(allData),
+    user_data: filterData(allUserData),
+    summary: {
+      total_runs: Object.values(byLang(filterData(allData))).reduce((a,b)=>a+b,0),
+      total_users: [...new Set(filterData(allUserData).map(r=>r.username))].length,
+      language_totals: byLang(filterData(allData)),
+    }
+  };
+  triggerDownload(JSON.stringify(payload, null, 2), prefix+'_full.json', 'application/json');
+  showToast('✓ JSON downloaded');
+}
+
+// ── Quick range buttons ───────────────────────────────────
+document.getElementById('range-btns').addEventListener('click',e=>{
+  const btn=e.target.closest('button[data-days]');if(!btn)return;
+  activeDays=parseInt(btn.dataset.days);
+  customFrom=null; customTo=null;
+  document.getElementById('date-from').value='';
+  document.getElementById('date-to').value='';
+  document.getElementById('active-range-badge').style.display='none';
+  document.querySelectorAll('#range-btns button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  expandedUsers.clear(); render();
+});
+
+// Allow pressing Enter in date fields to apply
+document.getElementById('date-to').addEventListener('keydown',e=>{if(e.key==='Enter') applyCustomRange();});
+document.getElementById('date-from').addEventListener('keydown',e=>{if(e.key==='Enter') applyCustomRange();});
+
+function showError(msg){const el=document.getElementById('error-box');el.textContent=msg;el.classList.add('show');document.getElementById('report-range').textContent='// error loading data';}
+function showEmpty(){document.getElementById('report-range').textContent='// no data yet — run some code first!';}
+
+fetchData();
+</script>
+</body>
+</html>

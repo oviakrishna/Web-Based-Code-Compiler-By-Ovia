@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>⚡CODE-COMPILER </title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0a0e1a;color:#cdd9e5;font-family:'Courier New',monospace;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+/* TOPBAR */
+#topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 18px;background:#0d1117;border-bottom:1px solid #1e2a3a;flex-shrink:0;gap:10px;flex-wrap:wrap}
+#logo{font-size:17px;font-weight:700;color:#58a6ff;white-space:nowrap}
+#lang-btns{display:flex;gap:5px;flex-wrap:wrap}
+.lb{padding:5px 11px;border-radius:6px;border:1px solid #1e2a3a;background:transparent;color:#4a5568;cursor:pointer;font-size:11px;font-weight:600;font-family:inherit;transition:all .15s}
+.lb:hover{color:#cdd9e5;border-color:#4a5568}
+.lb.on{font-weight:700}
+#right-btns{display:flex;gap:8px;align-items:center}
+#token-btn{padding:6px 12px;border-radius:6px;cursor:pointer;font-size:11px;font-family:inherit;border:1px solid #f85149;background:#f8514922;color:#f85149;white-space:nowrap}
+#token-btn.set{border-color:#238636;background:#23863622;color:#3fb950}
+#download-btn{padding:7px 14px;border-radius:7px;border:1px solid #58a6ff;background:#58a6ff22;color:#58a6ff;cursor:pointer;font-size:12px;font-weight:700;font-family:inherit;white-space:nowrap;transition:all .15s}
+#download-btn:hover{background:#58a6ff44}
+#run-btn{padding:7px 18px;border-radius:7px;border:none;background:linear-gradient(135deg,#238636,#2ea043);color:#fff;cursor:pointer;font-size:13px;font-weight:700;font-family:inherit;box-shadow:0 0 14px #2ea04355;white-space:nowrap}
+#run-btn:disabled{background:#1e2a3a;color:#4a5568;box-shadow:none;cursor:not-allowed}
+/* PANELS */
+#main{display:flex;flex:1;overflow:hidden}
+#editor-side{flex:1;display:flex;flex-direction:column;border-right:1px solid #1e2a3a;overflow:hidden;min-width:0}
+/* HTML mode: split editor */
+#html-editors{display:none;flex-direction:column;flex:1;overflow:hidden}
+#html-tabs{display:flex;background:#0d1117;border-bottom:1px solid #1e2a3a;flex-shrink:0}
+.htab{padding:6px 14px;border:none;border-bottom:2px solid transparent;background:transparent;color:#4a5568;cursor:pointer;font-size:11px;font-weight:600;font-family:inherit}
+.htab.on{border-bottom-color:#58a6ff;color:#58a6ff}
+#single-editor{display:flex;flex-direction:column;flex:1;overflow:hidden}
+#editor-header{padding:5px 14px;background:#0d1117;border-bottom:1px solid #1e2a3a;font-size:11px;color:#4a5568;flex-shrink:0}
+#editor-wrap{display:flex;flex:1;overflow:hidden}
+#line-nums{background:#0d1117;color:#4a5568;font-size:13px;line-height:1.6;padding:14px 8px 14px 12px;text-align:right;min-width:40px;border-right:1px solid #1e2a3a;user-select:none;overflow:hidden;flex-shrink:0}
+textarea.editor{flex:1;background:#0d1117;color:#e6edf3;border:none;outline:none;resize:none;padding:14px;font-family:'Courier New',monospace;font-size:13px;line-height:1.6;overflow-y:auto;width:100%}
+/* INPUT SECTION */
+#stdin-panel{display:none;flex-direction:column;flex:1;overflow:hidden;padding:0}
+#stdin-panel.active{display:flex}
+#stdin-help{padding:8px 14px 4px;font-size:11px;color:#4a5568;flex-shrink:0}
+#stdin-help b{color:#58a6ff}
+#stdin-input{flex:1;background:#0d1117;color:#e6edf3;border:none;outline:none;resize:none;padding:14px;font-family:'Courier New',monospace;font-size:13px;line-height:1.6;width:100%;border-top:1px solid #1e2a3a}
+#stdin-input::placeholder{color:#2d3748}
+/* OUTPUT */
+#output-side{width:42%;display:flex;flex-direction:column;overflow:hidden;flex-shrink:0}
+#tabs{display:flex;border-bottom:1px solid #1e2a3a;background:#0a0e1a;flex-shrink:0;align-items:center}
+.tab{padding:7px 14px;border:none;border-bottom:2px solid transparent;background:transparent;color:#4a5568;cursor:pointer;font-size:11px;font-weight:600;font-family:inherit}
+.tab.on{border-bottom-color:#58a6ff;color:#58a6ff}
+#tab-status{margin-left:auto;padding:7px 8px;font-size:11px}
+#clear-btn{padding:5px 10px;border-radius:5px;border:1px solid #1e2a3a;background:transparent;color:#4a5568;cursor:pointer;font-size:11px;font-family:inherit;margin-right:6px;transition:all .15s;white-space:nowrap}
+#clear-btn:hover{border-color:#f85149;color:#f85149;background:#f8514911}
+#output-content{flex:1;overflow:auto;position:relative;display:flex;flex-direction:column}
+#err-badge{margin:12px 14px 0;padding:7px 12px;background:#f8514922;border:1px solid #f8514966;border-radius:6px;color:#f85149;font-size:11px;font-weight:700;display:none}
+#out-pre{margin:0;padding:14px;font-family:'Courier New',monospace;font-size:13px;line-height:1.6;white-space:pre-wrap;word-break:break-word;flex:1}
+#preview-frame{width:100%;height:100%;border:none;display:none;background:#fff}
+/* STATUS */
+#statusbar{display:flex;gap:14px;padding:3px 14px;background:#0d1117;border-top:1px solid #1e2a3a;font-size:11px;color:#3d4d5c;flex-shrink:0}
+#st-right{margin-left:auto}
+/* MODAL */
+#overlay{display:none;position:fixed;inset:0;background:#000a;align-items:center;justify-content:center;z-index:300}
+#overlay.show{display:flex}
+#modal{background:#0d1117;border:1px solid #30363d;border-radius:12px;padding:26px;width:430px}
+#modal h3{margin:0 0 10px;color:#58a6ff;font-size:14px}
+#modal p{margin:0 0 14px;font-size:11px;color:#8b949e;line-height:1.8}
+#modal p b{color:#cdd9e5}
+#modal input{width:100%;padding:9px 11px;border-radius:6px;border:1px solid #30363d;background:#161b22;color:#cdd9e5;font-size:12px;font-family:inherit;outline:none;margin-bottom:12px}
+#modal-btns{display:flex;gap:8px;justify-content:flex-end}
+.mbtn{padding:7px 14px;border-radius:6px;cursor:pointer;font-family:inherit;font-size:12px}
+#m-cancel{border:1px solid #30363d;background:transparent;color:#8b949e}
+#m-save{border:none;background:#238636;color:#fff;font-weight:700}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:#0d1117}
+::-webkit-scrollbar-thumb{background:#1e2a3a;border-radius:3px}
+</style>
+</head>
+<body>
+
+<!-- MODAL -->
+<div id="overlay">
+  <div id="modal">
+    <h3>🔑 Glot.io API Token</h3>
+    <p>
+      <b>1.</b> Go to <a href="https://glot.io" target="_blank" style="color:#58a6ff">glot.io</a> → Sign up (free, no card)<br>
+      <b>2.</b> Profile icon → <b>API Tokens</b> → <b>Generate Token</b><br>
+      <b>3.</b> Paste token below
+    </p>
+    <input id="tok-input" placeholder="e.g. 5352e12e-79a5-47e7-b7ef-3fb2f3c63a26"/>
+    <div id="modal-btns">
+      <button class="mbtn" id="m-cancel" onclick="closeModal()">Cancel</button>
+      <button class="mbtn" id="m-save" onclick="saveToken()">💾 Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOPBAR -->
+<div id="topbar">
+  <span id="logo"><b>⚡CODE-COMPILER</b></span>
+  <div id="lang-btns">
+    <button class="lb" onclick="setLang('html')"   id="btn-html">HTML</button>
+    <button class="lb" onclick="setLang('python')" id="btn-python">Python</button>
+    <button class="lb" onclick="setLang('java')"   id="btn-java">Java</button>
+    <button class="lb" onclick="setLang('csharp')" id="btn-csharp">C#</button>
+    <button class="lb" onclick="setLang('c')"      id="btn-c">C</button>
+    <button class="lb" onclick="setLang('cpp')"    id="btn-cpp">C++</button>
+    <button class="lb" onclick="setLang('javascript')" id="btn-javascript">JS</button>
+    <button class="lb" onclick="setLang('php')"    id="btn-php">PHP</button>
+  </div>
+  <div id="right-btns">
+    <button onclick="location.href='/logout'" style="padding:7px 14px;border-radius:7px;border:1px solid #f85149;background:#f8514922;color:#f85149;cursor:pointer;font-size:12px;font-weight:700;font-family:inherit;">⏻ Logout</button>
+    <button id="token-btn" onclick="openModal()" style="display:none">🔑 Set Token</button>
+    <button id="download-btn" onclick="downloadCode()">⬇ Download</button>
+    <button id="run-btn" onclick="runCode()">▶ Run <small style="opacity:.6">Ctrl+↵</small></button>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div id="main">
+  <div id="editor-side">
+
+    <!-- HTML mode: 3 sub-editors -->
+    <div id="html-editors">
+      <div id="html-tabs">
+        <button class="htab on" id="htab-html" onclick="switchHtmlTab('html')">HTML</button>
+        <button class="htab" id="htab-css"  onclick="switchHtmlTab('css')">CSS</button>
+        <button class="htab" id="htab-js"   onclick="switchHtmlTab('js')">JS</button>
+      </div>
+      <div id="editor-wrap" style="flex:1">
+        <div id="line-nums2">1</div>
+        <textarea class="editor" id="html-code-editor" spellcheck="false"></textarea>
+      </div>
+    </div>
+
+    <!-- Single editor for all other langs -->
+    <div id="single-editor">
+      <div id="editor-header">main.py</div>
+      <div id="editor-wrap">
+        <div id="line-nums">1</div>
+        <textarea class="editor" id="code-editor" spellcheck="false"></textarea>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- OUTPUT -->
+  <div id="output-side">
+    <div id="tabs">
+      <button class="tab on" id="tab-output"  onclick="switchTab('output')">Output</button>
+      <button class="tab"    id="tab-error"   onclick="switchTab('error')">Error</button>
+      <button class="tab"    id="tab-preview" onclick="switchTab('preview')" style="display:none">Preview</button>
+      <span id="tab-status"></span>
+      <button id="clear-btn" onclick="clearOutput()" title="Clear output">🗑 Clear</button>
+    </div>
+    <div id="output-content">
+      <div id="err-badge">⚠️ Error Detected</div>
+      <pre id="out-pre" style="color:#2d3748">// Output will appear here
+// Press ▶ Run or Ctrl+Enter</pre>
+      <iframe id="preview-frame" sandbox="allow-scripts allow-same-origin allow-modals"></iframe>
+      <div id="stdin-panel">
+        <div id="stdin-help">
+          Enter inputs for your program — one value per line.<br>
+          e.g. type <b>5</b> → <b>+</b> → <b>3</b> (each on its own line)
+        </div>
+        <textarea id="stdin-input" placeholder="Type each input on its own line:&#10;5&#10;+&#10;3"></textarea>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- STATUSBAR -->
+<div id="statusbar">
+  <span id="st-lang">Python</span>
+  <span id="st-lines">Lines: 1</span>
+  <span id="st-chars">Chars: 0</span>
+  <span id="st-right">Glot.io via Local Server</span>
+</div>
+
+<script>
+function logout(){ location.href="/logout"; }
+
+const LANGS = {
+  html: {
+    label:"HTML", color:"#e34c26",
+    htmlDefault:`<!DOCTYPE html>
+<html>
+<head><title>My Page</title></head>
+<body>
+  <h1>Hello World! 🚀</h1>
+  <p>Edit HTML, CSS and JS tabs then click Run!</p>
+</body>
+</html>`,
+    cssDefault:`body {
+  font-family: sans-serif;
+  background: #1a1a2e;
+  color: #eee;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  margin: 0;
+}
+h1 { color: #e94560; font-size: 2rem; }
+p  { color: #a8dadc; }`,
+    jsDefault:`// JavaScript runs in the page
+document.querySelector('h1').addEventListener('click', () => {
+  alert('You clicked the heading! 🎉');
+});`
+  },
+  python: {
+    label:"Python", color:"#3572A5", glot:"python", filename:"main.py", ext:"py",
+    code:`# Python Example
+def greet(name):
+    return f"Hello, {name}! "
+
+for i in range(1, 6):
+    print(f"Count: {i}")
+
+print(greet("World"))
+squares = [x**2 for x in range(1, 6)]
+print("Squares:", squares)`
+  },
+  java: {
+    label:"Java", color:"#b07219", glot:"java", filename:"Main.java", ext:"java",
+    code:`public class Main {
+    public static void main(String[] args) {
+        System.out.println("Hello, World!");
+        for (int i = 1; i <= 5; i++) {
+            System.out.println("Count: " + i);
+        }
+        int[] sq = new int[5];
+        for (int i = 0; i < 5; i++) sq[i] = (i+1)*(i+1);
+        System.out.print("Squares: ");
+        for (int s : sq) System.out.print(s + " ");
+        System.out.println();
+    }
+}`
+  },
+  csharp: {
+    label:"C#", color:"#9B4F96", glot:"csharp", filename:"main.cs", ext:"cs",
+    code:`using System;
+
+class FactorialProgram
+{
+    static void Main()
+    {
+        Console.Write("Enter a number: ");
+        int num = Convert.ToInt32(Console.ReadLine());
+        long factorial = 1;
+        for (int i = 1; i <= num; i++) factorial *= i;
+        Console.WriteLine("Factorial of " + num + " is " + factorial);
+    }
+}`
+  },
+  c: {
+    label:"C", color:"#555555", glot:"c", filename:"main.c", ext:"c",
+    code:`#include <stdio.h>
+
+int main() {
+    printf("Hello, World!\\n");
+
+    int n;
+    printf("Enter a number: ");
+    scanf("%d", &n);
+
+    long long factorial = 1;
+    for (int i = 1; i <= n; i++) factorial *= i;
+    printf("Factorial of %d is %lld\\n", n, factorial);
+
+    return 0;
+}`
+  },
+  cpp: {
+    label:"C++", color:"#f34b7d", glot:"cpp", filename:"main.cpp", ext:"cpp",
+    code:`#include <iostream>
+#include <vector>
+using namespace std;
+
+int main() {
+    cout << "Hello, World!" << endl;
+
+    int n;
+    cout << "Enter a number: ";
+    cin >> n;
+
+    long long factorial = 1;
+    for (int i = 1; i <= n; i++) factorial *= i;
+    cout << "Factorial of " << n << " is " << factorial << endl;
+
+    vector<int> squares;
+    for (int i = 1; i <= 5; i++) squares.push_back(i * i);
+    cout << "Squares: ";
+    for (int s : squares) cout << s << " ";
+    cout << endl;
+
+    return 0;
+}`
+  },
+  javascript: {
+    label:"JavaScript", color:"#f1e05a", glot:"javascript", filename:"main.js", ext:"js",
+    code:`// JavaScript (Node.js) Example
+const greet = name => \`Hello, \${name}! 🚀\`;
+
+console.log(greet("World"));
+
+for (let i = 1; i <= 5; i++) {
+    console.log(\`Count: \${i}\`);
+}
+
+const squares = Array.from({length: 5}, (_, i) => (i + 1) ** 2);
+console.log("Squares:", squares.join(", "));
+
+// Fibonacci
+function fibonacci(n) {
+    if (n <= 1) return n;
+    return fibonacci(n - 1) + fibonacci(n - 2);
+}
+console.log("Fibonacci(10):", fibonacci(10));`
+  },
+  php: {
+    label:"PHP", color:"#4F5D95", glot:"php", filename:"main.php", ext:"php",
+    code:`<?php
+echo "Hello, World!\\n";
+
+function factorial($n) {
+    if ($n <= 1) return 1;
+    return $n * factorial($n - 1);
+}
+
+for ($i = 1; $i <= 5; $i++) {
+    echo "Count: $i\\n";
+}
+
+$num = 7;
+echo "Factorial of $num is " . factorial($num) . "\\n";
+
+$squares = array_map(fn($x) => $x * $x, range(1, 5));
+echo "Squares: " . implode(", ", $squares) . "\\n";
+?>`
+  },
+};
+
+let curLang = "python";
+let htmlTab = "html";
+let htmlCode = { html:"", css:"", js:"" };
+let token = "ea3e8183-7350-4d16-9d96-577b15bbab47";
+
+const editor     = document.getElementById("code-editor");
+const htmlEditor = document.getElementById("html-code-editor");
+const lineNums   = document.getElementById("line-nums");
+const lineNums2  = document.getElementById("line-nums2");
+const outPre     = document.getElementById("out-pre");
+const errBadge   = document.getElementById("err-badge");
+const previewFr  = document.getElementById("preview-frame");
+const runBtn     = document.getElementById("run-btn");
+const tokenBtn   = document.getElementById("token-btn");
+
+// Init
+htmlCode.html = LANGS.html.htmlDefault;
+htmlCode.css  = LANGS.html.cssDefault;
+htmlCode.js   = LANGS.html.jsDefault;
+editor.value  = LANGS.python.code;
+updateLines(editor, lineNums);
+updateTokenBtn();
+setLang("python");
+loadToken();   // ← auto-load token from DB on page load
+
+// ─── Token persistence ────────────────────────────────────────────────────────
+async function loadToken() {
+  try {
+    const res = await fetch("/glot-token", { credentials: "include" });
+    const data = await res.json();
+    if (data.token) {
+      token = data.token;
+      updateTokenBtn();
+    }
+  } catch (e) {
+    // silent fail
+  }
+}
+
+// ─── Line numbers ─────────────────────────────────────────────────────────────
+function updateLines(ta, ln) {
+  const n = ta.value.split("\n").length;
+  ln.innerHTML = Array.from({length:n},(_,i)=>`<div>${i+1}</div>`).join("");
+}
+
+editor.addEventListener("input", () => {
+  updateLines(editor, lineNums);
+  updateStatus(editor);
+  updateEditorHeader();
+});
+editor.addEventListener("scroll", () => { lineNums.scrollTop = editor.scrollTop; });
+editor.addEventListener("keydown", e => handleKeys(e, editor, lineNums));
+
+htmlEditor.addEventListener("input", () => {
+  htmlCode[htmlTab] = htmlEditor.value;
+  updateLines(htmlEditor, lineNums2);
+});
+htmlEditor.addEventListener("scroll", () => { lineNums2.scrollTop = htmlEditor.scrollTop; });
+htmlEditor.addEventListener("keydown", e => handleKeys(e, htmlEditor, lineNums2));
+
+function handleKeys(e, ta, ln) {
+  if (e.key === "Tab") {
+    e.preventDefault();
+    const s = ta.selectionStart, en = ta.selectionEnd;
+    ta.value = ta.value.substring(0,s) + "  " + ta.value.substring(en);
+    ta.selectionStart = ta.selectionEnd = s + 2;
+    updateLines(ta, ln);
+  }
+  if ((e.ctrlKey||e.metaKey) && e.key==="Enter") runCode();
+}
+
+function updateStatus(ta) {
+  document.getElementById("st-lines").textContent = "Lines: " + ta.value.split("\n").length;
+  document.getElementById("st-chars").textContent = "Chars: " + ta.value.length;
+}
+
+function setLang(lang) {
+  curLang = lang;
+  const cfg = LANGS[lang];
+
+  Object.keys(LANGS).forEach(k => {
+    const b = document.getElementById("btn-"+k);
+    if (!b) return;
+    b.className = "lb";
+    b.style.borderColor = "";
+    b.style.background = "";
+    b.style.color = "";
+  });
+  const ab = document.getElementById("btn-"+lang);
+  ab.className = "lb on";
+  ab.style.borderColor = cfg.color;
+  ab.style.background = cfg.color + "22";
+  ab.style.color = cfg.color;
+
+  document.getElementById("tab-preview").style.display = lang === "html" ? "inline-block" : "none";
+
+  if (lang === "html") {
+    document.getElementById("html-editors").style.display = "flex";
+    document.getElementById("single-editor").style.display = "none";
+    switchHtmlTab(htmlTab);
+  } else {
+    document.getElementById("html-editors").style.display = "none";
+    document.getElementById("single-editor").style.display = "flex";
+    editor.value = cfg.code;
+    document.getElementById("editor-header").textContent = cfg.label + "  " + getFilename(cfg, cfg.code);
+    updateLines(editor, lineNums);
+    updateStatus(editor);
+  }
+
+  document.getElementById("st-lang").textContent = cfg.label;
+  document.getElementById("st-lang").style.color = cfg.color;
+  clearOutput();
+}
+
+function switchHtmlTab(tab) {
+  htmlCode[htmlTab] = htmlEditor.value;
+  htmlTab = tab;
+  htmlEditor.value = htmlCode[tab];
+  updateLines(htmlEditor, lineNums2);
+  ["html","css","js"].forEach(t => {
+    document.getElementById("htab-"+t).className = "htab" + (t===tab?" on":"");
+  });
+  htmlEditor.focus();
+}
+
+// ─── Download ─────────────────────────────────────────────────────────────────
+function downloadCode() {
+  let content, filename;
+  if (curLang === "html") {
+    htmlCode[htmlTab] = htmlEditor.value;
+    content = buildHTML();
+    filename = "index.html";
+  } else {
+    content = editor.value;
+    filename = LANGS[curLang].filename;
+  }
+  const blob = new Blob([content], { type: "text/plain" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ─── Count stdin reads ────────────────────────────────────────────────────────
+function countInputCalls(code, lang) {
+  switch (lang) {
+    case "python":
+      return (code.match(/\binput\s*\(/g) || []).length;
+    case "csharp":
+      return (code.match(/Console\.ReadLine\s*\(/g) || []).length;
+    case "java":
+      return (code.match(/\.\s*next(?:Line|Int|Double|Float|Long|Short|Byte|Boolean)?\s*\(/g) || []).length;
+    case "c":
+    case "cpp":
+      return (code.match(/\bscanf\s*\(|cin\s*>>/g) || []).length;
+    case "php":
+      return (code.match(/\bfgets\s*\(|\bfscanf\s*\(|\breadline\s*\(/g) || []).length;
+    default:
+      return 0;
+  }
+}
+
+// ─── Interactive input collection ─────────────────────────────────────────────
+function collectInputsInteractively(count) {
+  return new Promise(resolve => {
+    if (count === 0) { resolve(""); return; }
+
+    switchTab("output");
+    outPre.style.color = "#cdd9e5";
+    outPre.style.display = "block";
+
+    const collectedLines = [];
+    const collectedValues = [];
+
+    function askNext() {
+      if (collectedValues.length === collectedLines.length &&
+          collectedValues.length >= count) {
+        resolve(collectedValues.join("\n"));
+        return;
+      }
+
+      const inputEl = document.createElement("input");
+      inputEl.type = "text";
+      inputEl.style.cssText = [
+        "background:transparent","border:none","outline:none",
+        "color:#e6edf3","font-family:'Courier New',monospace",
+        "font-size:13px","line-height:1.6","width:180px",
+        "caret-color:#58a6ff","padding:0","margin:0",
+      ].join(";");
+
+      const br = document.createTextNode("\n");
+      outPre.appendChild(br);
+      outPre.appendChild(inputEl);
+      inputEl.focus();
+
+      const outputContent = document.getElementById("output-content");
+      outputContent.scrollTop = outputContent.scrollHeight;
+
+      inputEl.addEventListener("keydown", e => {
+        if (e.key !== "Enter") return;
+        e.preventDefault();
+        const val = inputEl.value;
+        inputEl.remove();
+        br.textContent = "\n" + val + "\n";
+        collectedValues.push(val);
+        collectedLines.push(val);
+        if (collectedValues.length >= count) {
+          resolve(collectedValues.join("\n"));
+        } else {
+          askNext();
+        }
+      });
+    }
+
+    askNext();
+  });
+}
+
+// ─── Run ──────────────────────────────────────────────────────────────────────
+async function runCode() {
+  clearOutput();
+
+  if (curLang === "html") {
+    htmlCode[htmlTab] = htmlEditor.value;
+    const combined = buildHTML();
+    previewFr.srcdoc = combined;
+    previewFr.style.display = "block";
+    outPre.style.display = "none";
+    errBadge.style.display = "none";
+    switchTab("preview");
+    return;
+  }
+
+  if (!token) {
+    showError("🔑 No token set!\n\nClick '🔑 Set Token' and paste your Glot.io token.\n\nGet one free at: https://glot.io");
+    return;
+  }
+
+  const inputCount = countInputCalls(editor.value, curLang);
+  let stdin = "";
+  if (inputCount > 0) {
+    outPre.textContent = "⌨ Waiting for your input below…";
+    outPre.style.color = "#58a6ff";
+    outPre.style.display = "block";
+    switchTab("output");
+    stdin = await collectInputsInteractively(inputCount);
+  }
+
+  runBtn.disabled = true;
+  runBtn.textContent = "⟳ Running...";
+  outPre.textContent = "⟳ Executing...";
+  outPre.style.color = "#58a6ff";
+  outPre.style.display = "block";
+  switchTab("output");
+
+  const cfg = LANGS[curLang];
+
+  try {
+    const res = await fetch("/run", {
+      method:"POST",
+      credentials: "include",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({
+        language: cfg.glot,
+        token,
+        code: editor.value,
+        filename: getFilename(cfg, editor.value),
+        stdin
+      })
+    });
+    const data = await res.json();
+    if (data.message && !data.stdout && !data.stderr) {
+      showError("API Error: " + data.message);
+    } else {
+      const stdout = data.stdout?.trim() || "";
+      const stderr = data.stderr?.trim() || "";
+      if (stdout) {
+        showOutput(
+          mergeStdinIntoOutput(stdout, stdin) +
+          (stderr ? "\n\n── stderr ──\n" + stderr : "")
+        );
+      } else if (stderr) {
+        showError(stderr);
+      } else {
+        showOutput("(No output)");
+      }
+    }
+  } catch(err) {
+    showError("❌ Cannot reach server!\n\nMake sure app.py is running, then open: http://localhost:5000");
+  }
+
+  runBtn.disabled = false;
+  runBtn.innerHTML = "▶ Run <small style='opacity:.6'>Ctrl+↵</small>";
+}
+
+// ─── Merge stdin into output ──────────────────────────────────────────────────
+function mergeStdinIntoOutput(stdout, stdin) {
+  if (!stdin || !stdin.trim()) return stdout;
+  const inputs = stdin.split("\n").map(s => s.trim()).filter(s => s.length > 0);
+  if (inputs.length === 0) return stdout;
+  const parts = stdout.split(/(.*?:\s*)/);
+  const segments = parts.filter(p => p !== "");
+  let inputIdx = 0;
+  let result = "";
+  for (let i = 0; i < segments.length; i++) {
+    result += segments[i];
+    if (/:\s*$/.test(segments[i]) && inputIdx < inputs.length) {
+      result += inputs[inputIdx++] + "\n";
+    }
+  }
+  return result.trimEnd();
+}
+
+// ─── Filename resolution ──────────────────────────────────────────────────────
+function getFilename(cfg, code) {
+  if (cfg.glot === "java") {
+    const pubMatch = code.match(/public\s+class\s+(\w+)/);
+    if (pubMatch) return pubMatch[1] + ".java";
+    const anyMatch = code.match(/class\s+(\w+)/);
+    if (anyMatch) return anyMatch[1] + ".java";
+    return cfg.filename;
+  }
+  return cfg.filename;
+}
+
+function updateEditorHeader() {
+  if (curLang !== "java") return;
+  const cfg = LANGS[curLang];
+  document.getElementById("editor-header").textContent =
+    cfg.label + "  " + getFilename(cfg, editor.value);
+}
+
+// ─── HTML builder ─────────────────────────────────────────────────────────────
+function buildHTML() {
+  let html = htmlCode.html;
+  const css  = htmlCode.css;
+  const js   = htmlCode.js;
+  const styleTag  = css  ? `<style>\n${css}\n</style>` : "";
+  const scriptTag = js   ? `<script>\n${js}\n<\/script>` : "";
+  if (html.includes("</head>")) {
+    html = html.replace("</head>", styleTag + "\n</head>");
+  } else {
+    html = styleTag + "\n" + html;
+  }
+  if (html.includes("</body>")) {
+    html = html.replace("</body>", scriptTag + "\n</body>");
+  } else {
+    html = html + "\n" + scriptTag;
+  }
+  return html;
+}
+
+// ─── Output helpers ───────────────────────────────────────────────────────────
+function showOutput(text) {
+  outPre.textContent = text;
+  outPre.style.color = "#3fb950";
+  outPre.style.display = "block";
+  errBadge.style.display = "none";
+  previewFr.style.display = "none";
+  document.getElementById("tab-status").innerHTML = "<span style='color:#3fb950'>✓ Success</span>";
+  switchTab("output");
+}
+
+function showError(text) {
+  errBadge.style.display = "block";
+  outPre.textContent = text;
+  outPre.style.color = "#f85149";
+  outPre.style.display = "block";
+  previewFr.style.display = "none";
+  document.getElementById("tab-status").innerHTML = "<span style='color:#f85149'>✗ Error</span>";
+  switchTab("error");
+}
+
+function clearOutput() {
+  outPre.textContent = "// Output will appear here\n// Press ▶ Run or Ctrl+Enter";
+  outPre.style.color = "#2d3748";
+  outPre.style.display = "block";
+  errBadge.style.display = "none";
+  previewFr.style.display = "none";
+  previewFr.srcdoc = "";
+  document.getElementById("tab-status").textContent = "";
+  switchTab("output");
+}
+
+function switchTab(tab) {
+  ["output","error","preview"].forEach(t => {
+    const el = document.getElementById("tab-"+t);
+    if (el) el.className = "tab" + (t===tab?" on":"");
+  });
+  if (tab === "preview") {
+    previewFr.style.display = "block";
+    outPre.style.display = "none";
+    errBadge.style.display = "none";
+  } else if (tab === "error") {
+    errBadge.style.display = "block";
+    outPre.style.display = "block";
+    previewFr.style.display = "none";
+  } else {
+    errBadge.style.display = "none";
+    outPre.style.display = "block";
+    previewFr.style.display = "none";
+  }
+}
+
+// ─── Token modal ──────────────────────────────────────────────────────────────
+function openModal() {
+  document.getElementById("tok-input").value = token;
+  document.getElementById("overlay").classList.add("show");
+  setTimeout(()=>document.getElementById("tok-input").focus(),100);
+}
+function closeModal() { document.getElementById("overlay").classList.remove("show"); }
+
+async function saveToken() {
+  token = document.getElementById("tok-input").value.trim();
+  localStorage.setItem("glot_token", token);
+
+  // Save to DB so it persists across devices/browsers
+  try {
+    await fetch("/save-token", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token })
+    });
+  } catch (e) {
+    // DB save failed silently — localStorage fallback still works
+  }
+
+  updateTokenBtn();
+  closeModal();
+}
+
+function updateTokenBtn() {
+  if (token) { tokenBtn.textContent=" Token Set ✓"; tokenBtn.className="set"; }
+  else        { tokenBtn.textContent="🔑 Set Token"; tokenBtn.className=""; }
+}
+document.getElementById("tok-input").addEventListener("keydown", e => { if(e.key==="Enter") saveToken(); });
+document.getElementById("overlay").addEventListener("click", e => {
+  if(e.target===document.getElementById("overlay")) closeModal();
+});
+</script>
+</body>
+</html>
