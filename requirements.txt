@@ -5,3 +5,4 @@ requests
 bcrypt
 certifi
 gunicorn
+python-dotenv
